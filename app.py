@@ -23,6 +23,28 @@ def t(text):
     """Return the Kiswahili version of a text when Kiswahili is selected."""
     return SWAHILI.get(text, text) if language == "Kiswahili" else text
 
+# Visual identity: one fixed colour per country in every chart
+COUNTRY_COLORS = {"Ethiopia": "#1F4E79", "Kenya": "#C0392B", "Rwanda": "#E69F00",
+                  "Tanzania": "#2E8B57", "Uganda": "#7B4FA3"}
+px.defaults.template = "plotly_white"
+px.defaults.color_discrete_map = COUNTRY_COLORS
+
+st.markdown("""
+<style>
+[data-testid="stMetric"] {
+    background: #F2F5F9; border-left: 5px solid #1F4E79;
+    padding: 14px 18px; border-radius: 8px;
+}
+[data-testid="stMetricValue"] {color: #1F4E79;}
+.block-container {padding-top: 2rem;}
+.hero {
+    background: linear-gradient(120deg, #1F4E79 0%, #2E6EA6 100%);
+    color: white; padding: 28px 32px; border-radius: 12px; margin-bottom: 1.2rem;
+}
+.hero h1 {color: white; margin: 0 0 6px 0; font-size: 2rem;}
+.hero p {margin: 0; font-size: 1.05rem; opacity: 0.92;}
+</style>
+""", unsafe_allow_html=True)
 # Names of the variables used throughout the application
 TARGET = "Undernourishment_pct_final"
 PREDICTORS = ["Rainfall_mm", "Temperature_C", "GDP_per_capita_USD",
@@ -141,28 +163,34 @@ df = load_data()
 
 # Sidebar navigation
 st.sidebar.title(t("🌍 East Africa Food Insecurity"))
+st.sidebar.image("assets/strathmore_logo_transparent.png", width=110)
 st.sidebar.caption(t("Companion platform to the research project, 2000–2023"))
 PAGES = ["Overview", "Country explorer", "Relationships", "Model comparison",
          "Forward-looking test", "Hypothesis tests", "Prediction simulator",
          "About and limitations"]
 page = st.sidebar.radio(t("Navigate"), PAGES, format_func=t)
 if page == "Overview":
-    st.title(t("Predicting food insecurity in East Africa"))
-    st.write(t("Climate and economic indicators for Kenya, Uganda, Tanzania, Rwanda and Ethiopia, "
-               "2000–2023 (120 country-year observations)."))
-    c1, c2, c3 = st.columns(3)
-    c1.metric(t("Countries"), "5")
-    c2.metric(t("Observations"), len(df))
-    c3.metric(t("Mean undernourishment"), f"{df[TARGET].mean():.1f}%")
-    fig = px.line(df, x="Year", y=TARGET, color="Country", markers=True,
+        st.markdown(
+        f"""<div class="hero"><h1>{t("Predicting food insecurity in East Africa")}</h1>
+        <p>{t("Climate and economic indicators for Kenya, Uganda, Tanzania, Rwanda and Ethiopia, "
+              "2000–2023 (120 country-year observations).")}</p></div>""",
+        unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        c1.metric(t("Countries"), "5")
+        c2.metric(t("Observations"), len(df))
+        c3.metric(t("Mean undernourishment"), f"{df[TARGET].mean():.1f}%")
+        fig = px.line(df, x="Year", y=TARGET, color="Country", markers=True,
                   labels={TARGET: LABELS[TARGET], "Year": t("Year"), "Country": t("Country")})
-    fig.update_layout(title=t("Prevalence of undernourishment by country"), height=450)
-    st.plotly_chart(fig, width="stretch")
-    change = (df[df.Year == 2023].set_index("Country")[TARGET]
+        fig.update_layout(title=t("Prevalence of undernourishment by country"), height=450)
+        st.plotly_chart(fig, width="stretch")
+        change = (df[df.Year == 2023].set_index("Country")[TARGET]
               - df[df.Year == 2001].set_index("Country")[TARGET]).round(1).sort_values()
-    st.subheader(t("Change in undernourishment, 2001 to 2023 (percentage points)"))
-    st.bar_chart(change)
-    st.info(t("Undernourishment fell strongly in Ethiopia, Rwanda and Tanzania but not in "
+        st.subheader(t("Change in undernourishment, 2001 to 2023 (percentage points)"))
+        bar = px.bar(change.reset_index(), x=TARGET, y="Country", orientation="h", color="Country",
+                 labels={TARGET: t("Percentage points"), "Country": t("Country")})
+        bar.update_layout(showlegend=False, height=320)
+        st.plotly_chart(bar, width="stretch")
+        st.info(t("Undernourishment fell strongly in Ethiopia, Rwanda and Tanzania but not in "
               "Uganda or Kenya, although income rose in all five countries."))
 
 elif page == "Country explorer":
@@ -297,6 +325,7 @@ elif page == "Prediction simulator":
                  "show causal effects."))
 elif page == "About and limitations":
     st.title(t("About and limitations"))
+    st.image("assets/strathmore_logo_transparent.png", width=160)
     st.markdown(t("**Study.** Final-year research project, BSc Statistics and Data Science, "
                   "Strathmore University (Bonane Mugwarhiriza Antoine, 169463). Title: *Predicting Food "
                   "Insecurity in East Africa Using Climate and Economic Indicators (2000–2023)*."))

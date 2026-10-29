@@ -170,4 +170,6 @@ SWAHILI = {
     "The models suit screening and monitoring, not precise early warning.":
         "Mifano inafaa kwa uchunguzi wa awali na ufuatiliaji, si kwa tahadhari ya mapema "
         "iliyo sahihi.",
+        
+    "Percentage points": "Pointi za asilimia",
 }
