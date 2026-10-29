@@ -135,7 +135,8 @@ st.sidebar.title("🌍 East Africa Food Insecurity")
 st.sidebar.caption("Companion platform to the research project, 2000–2023")
 page = st.sidebar.radio("Navigate", ["Overview", "Country explorer", "Relationships",
                                       "Model comparison", "Forward-looking test",
-                                      "Hypothesis tests", "About and limitations"])
+                                      "Hypothesis tests", "Prediction simulator",
+                                      "About and limitations"])
 if page == "Overview":
     st.title("Predicting food insecurity in East Africa")
     st.write("Climate and economic indicators for Kenya, Uganda, Tanzania, Rwanda and Ethiopia, "
@@ -219,6 +220,48 @@ elif page == "Hypothesis tests":
     st.caption("Pooled model: OLS on all 120 observations. The country-effects model adds a "
                "dummy variable for each country. P-values are probably optimistic because "
                "errors are correlated within each of the five countries.")
+elif page == "Prediction simulator":
+    st.title("Prediction simulator")
+    st.write("Choose a starting point, adjust the six indicators, and see what each model "
+             "estimates for the prevalence of undernourishment.")
+
+    _, _, _, trained_models = train_random_split_models()
+
+    start = st.selectbox("Starting point",
+                         ["Sample average"] + [f"{c} (values for 2023)" for c in COUNTRIES])
+    if start == "Sample average":
+        defaults = df[PREDICTORS].mean()
+        context = None
+    else:
+        country = start.split(" ")[0]
+        row = df[(df.Country == country) & (df.Year == 2023)].iloc[0]
+        defaults = row[PREDICTORS]
+        context = (country, float(row[TARGET]))
+
+    st.subheader("Indicators")
+    inputs = {}
+    columns = st.columns(2)
+    for i, variable in enumerate(PREDICTORS):
+        low, high = float(df[variable].min()), float(df[variable].max())
+        value = float(min(max(defaults[variable], low), high))
+        with columns[i % 2]:
+            inputs[variable] = st.slider(LABELS[variable], low, high, value,
+                                         key=f"{variable}_{start}")
+
+    new_case = pd.DataFrame([inputs])[PREDICTORS]
+    st.subheader("Estimated undernourishment")
+    result_columns = st.columns(3)
+    for column, (name, model) in zip(result_columns, trained_models.items()):
+        column.metric(name, f"{float(model.predict(new_case)[0]):.1f}%")
+
+    if context:
+        st.caption(f"Observed value for {context[0]} in 2023: {context[1]:.1f}%.")
+
+    st.warning("Illustrative tool only. The sliders are limited to the range of the study data. "
+               "The models estimate levels reasonably well (Random Forest R² = 0.77 on a random "
+               "split) but forecast year-to-year changes weakly (R² = 0.14 on 2018-2023). "
+               "They suit screening and monitoring, not precise early warning, and they do not "
+               "show causal effects.")
 elif page == "About and limitations":
     st.title("About and limitations")
     st.markdown("""
