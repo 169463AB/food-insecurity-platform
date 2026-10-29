@@ -11,9 +11,17 @@ from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.base import clone
 import statsmodels.formula.api as smf
+from translations import SWAHILI
 
 # Page configuration (must be the first Streamlit command)
 st.set_page_config(page_title="East Africa Food Insecurity", page_icon="🌍", layout="wide")
+# Language selector and translation helper
+language = st.sidebar.selectbox("Language / Lugha", ["English", "Kiswahili"])
+
+
+def t(text):
+    """Return the Kiswahili version of a text when Kiswahili is selected."""
+    return SWAHILI.get(text, text) if language == "Kiswahili" else text
 
 # Names of the variables used throughout the application
 TARGET = "Undernourishment_pct_final"
@@ -28,6 +36,7 @@ LABELS = {
     "Poverty_rate_interpolated": "Poverty rate (%)",
     "Agri_value_added_pctGDP": "Agricultural value added (% of GDP)",
 }
+LABELS = {key: t(value) for key, value in LABELS.items()}
 COUNTRIES = ["Ethiopia", "Kenya", "Rwanda", "Tanzania", "Uganda"]
 
 
@@ -74,7 +83,7 @@ def train_random_split_models():
     results = pd.DataFrame(rows).sort_values("RMSE").reset_index(drop=True)
 
     importance = pd.DataFrame({
-        "Predictor": [LABELS[c] for c in PREDICTORS],
+                "Predictor": PREDICTORS,
         "Decision Tree": models["Decision Tree"].feature_importances_,
         "Random Forest": models["Random Forest"].feature_importances_,
     })
@@ -131,104 +140,127 @@ def run_hypothesis_tests():
 df = load_data()
 
 # Sidebar navigation
-st.sidebar.title("🌍 East Africa Food Insecurity")
-st.sidebar.caption("Companion platform to the research project, 2000–2023")
-page = st.sidebar.radio("Navigate", ["Overview", "Country explorer", "Relationships",
-                                      "Model comparison", "Forward-looking test",
-                                      "Hypothesis tests", "Prediction simulator",
-                                      "About and limitations"])
+st.sidebar.title(t("🌍 East Africa Food Insecurity"))
+st.sidebar.caption(t("Companion platform to the research project, 2000–2023"))
+PAGES = ["Overview", "Country explorer", "Relationships", "Model comparison",
+         "Forward-looking test", "Hypothesis tests", "Prediction simulator",
+         "About and limitations"]
+page = st.sidebar.radio(t("Navigate"), PAGES, format_func=t)
 if page == "Overview":
-    st.title("Predicting food insecurity in East Africa")
-    st.write("Climate and economic indicators for Kenya, Uganda, Tanzania, Rwanda and Ethiopia, "
-             "2000–2023 (120 country-year observations).")
+    st.title(t("Predicting food insecurity in East Africa"))
+    st.write(t("Climate and economic indicators for Kenya, Uganda, Tanzania, Rwanda and Ethiopia, "
+               "2000–2023 (120 country-year observations)."))
     c1, c2, c3 = st.columns(3)
-    c1.metric("Countries", "5")
-    c2.metric("Observations", len(df))
-    c3.metric("Mean undernourishment", f"{df[TARGET].mean():.1f}%")
+    c1.metric(t("Countries"), "5")
+    c2.metric(t("Observations"), len(df))
+    c3.metric(t("Mean undernourishment"), f"{df[TARGET].mean():.1f}%")
     fig = px.line(df, x="Year", y=TARGET, color="Country", markers=True,
-                  labels={TARGET: LABELS[TARGET]})
-    fig.update_layout(title="Prevalence of undernourishment by country", height=450)
+                  labels={TARGET: LABELS[TARGET], "Year": t("Year"), "Country": t("Country")})
+    fig.update_layout(title=t("Prevalence of undernourishment by country"), height=450)
     st.plotly_chart(fig, width="stretch")
     change = (df[df.Year == 2023].set_index("Country")[TARGET]
               - df[df.Year == 2001].set_index("Country")[TARGET]).round(1).sort_values()
-    st.subheader("Change in undernourishment, 2001 to 2023 (percentage points)")
+    st.subheader(t("Change in undernourishment, 2001 to 2023 (percentage points)"))
     st.bar_chart(change)
-    st.info("Undernourishment fell strongly in Ethiopia, Rwanda and Tanzania but not in "
-            "Uganda or Kenya, although income rose in all five countries.")
+    st.info(t("Undernourishment fell strongly in Ethiopia, Rwanda and Tanzania but not in "
+              "Uganda or Kenya, although income rose in all five countries."))
 
 elif page == "Country explorer":
-    st.title("Country explorer")
-    selected = st.multiselect("Countries", COUNTRIES, default=COUNTRIES)
-    variable = st.selectbox("Indicator", [TARGET] + PREDICTORS, format_func=lambda c: LABELS[c])
-    years = st.slider("Years", 2000, 2023, (2000, 2023))
+    st.title(t("Country explorer"))
+    selected = st.multiselect(t("Countries"), COUNTRIES, default=COUNTRIES)
+    variable = st.selectbox(t("Indicator"), [TARGET] + PREDICTORS, format_func=lambda c: LABELS[c])
+    years = st.slider(t("Years"), 2000, 2023, (2000, 2023))
     subset = df[df.Country.isin(selected) & df.Year.between(*years)]
     fig = px.line(subset, x="Year", y=variable, color="Country", markers=True,
-                  labels={variable: LABELS[variable]})
+                  labels={variable: LABELS[variable], "Year": t("Year"), "Country": t("Country")})
     st.plotly_chart(fig, width="stretch")
-    st.subheader("Country averages over the selected years")
+    st.subheader(t("Country averages over the selected years"))
     averages = (subset.groupby("Country")[[TARGET] + PREDICTORS]
                 .mean().round(2).rename(columns=LABELS))
+    averages.index.name = t("Country")
     st.dataframe(averages, width="stretch")
     if "Rwanda" in selected and variable == "Poverty_rate_interpolated":
-        st.warning("Rwanda has only one real poverty observation (2023); "
-                   "its series is constant by construction.")
+        st.warning(t("Rwanda has only one real poverty observation (2023); "
+                     "its series is constant by construction."))
 elif page == "Relationships":
-    st.title("Relationships between indicators")
+    st.title(t("Relationships between indicators"))
     columns = [TARGET] + PREDICTORS
     correlation = df[columns].corr().round(3).rename(index=LABELS, columns=LABELS)
     fig = px.imshow(correlation, text_auto=True, color_continuous_scale="RdBu_r",
                     zmin=-1, zmax=1, aspect="auto")
-    fig.update_layout(height=550, title="Pearson correlation matrix")
+    fig.update_layout(height=550, title=t("Pearson correlation matrix"))
     st.plotly_chart(fig, width="stretch")
 
-    predictor = st.selectbox("Predictor", PREDICTORS, format_func=lambda c: LABELS[c])
+    predictor = st.selectbox(t("Predictor"), PREDICTORS, format_func=lambda c: LABELS[c])
     scatter = px.scatter(df, x=predictor, y=TARGET, color="Country", hover_data=["Year"],
-                         labels={predictor: LABELS[predictor], TARGET: LABELS[TARGET]})
+                         labels={predictor: LABELS[predictor], TARGET: LABELS[TARGET],
+                                 "Country": t("Country"), "Year": t("Year")})
     st.plotly_chart(scatter, width="stretch")
-    st.caption("Correlations are computed on pooled data. The negative link with temperature "
-               "mainly reflects differences between countries (Rwanda is the coolest and has the "
-               "highest undernourishment), not an effect of warming.")
+    st.caption(t("Correlations are computed on pooled data. The negative link with temperature "
+                 "mainly reflects differences between countries (Rwanda is the coolest and has the "
+                 "highest undernourishment), not an effect of warming."))
 elif page == "Model comparison":
-    st.title("Model comparison (random 80/20 split)")
+    st.title(t("Model comparison (random 80/20 split)"))
     results, importance, observed_vs_predicted, _ = train_random_split_models()
-    st.dataframe(results.round(3), width="stretch")
+    results = results.copy()
+    results["Model"] = results["Model"].map(t)
+    st.dataframe(results.rename(columns={"Model": t("Model"),
+                                         "R² (training)": t("R² (training)")}).round(3),
+                 width="stretch")
 
-    model_name = st.selectbox("Observed against predicted",
-                              [c for c in observed_vs_predicted.columns if c != "Observed"])
+    model_name = st.selectbox(t("Observed against predicted"),
+                              [c for c in observed_vs_predicted.columns if c != "Observed"],
+                              format_func=t)
     fig = px.scatter(observed_vs_predicted, x="Observed", y=model_name,
-                     labels={"Observed": "Observed (%)", model_name: "Predicted (%)"})
+                     labels={"Observed": t("Observed (%)"), model_name: t("Predicted (%)")})
     limits = [observed_vs_predicted["Observed"].min(), observed_vs_predicted["Observed"].max()]
-    fig.add_trace(go.Scatter(x=limits, y=limits, mode="lines", name="Perfect prediction",
+    fig.add_trace(go.Scatter(x=limits, y=limits, mode="lines", name=t("Perfect prediction"),
                              line=dict(dash="dash")))
     st.plotly_chart(fig, width="stretch")
 
-    st.subheader("Feature importance (tree-based models)")
+    st.subheader(t("Feature importance (tree-based models)"))
     long_form = importance.melt("Predictor", var_name="Model", value_name="Importance")
+    long_form["Predictor"] = long_form["Predictor"].map(LABELS)
+    long_form["Model"] = long_form["Model"].map(t)
     st.plotly_chart(px.bar(long_form, x="Importance", y="Predictor", color="Model",
-                           barmode="group", orientation="h"), width="stretch")
-    st.caption("Importance shows how much a variable contributes to the splits, "
-               "not the direction of its effect.")
+                           barmode="group", orientation="h",
+                           labels={"Importance": t("Importance"), "Predictor": t("Predictor"),
+                                   "Model": t("Model")}), width="stretch")
+    st.caption(t("Importance shows how much a variable contributes to the splits, "
+                 "not the direction of its effect."))
 elif page == "Forward-looking test":
-    st.title("Robustness: train on 2000–2017, test on 2018–2023")
-    st.dataframe(train_temporal_models().round(3), width="stretch")
-    st.warning("Accuracy drops sharply when the models must predict later years. "
-               "The random split overstates forecasting ability: the models estimate levels "
-               "well but forecast changes weakly.")
+    st.title(t("Robustness: train on 2000–2017, test on 2018–2023"))
+    table = train_temporal_models().copy()
+    table["Model"] = table["Model"].map(t)
+    st.dataframe(table.rename(columns={"Model": t("Model")}).round(3), width="stretch")
+    st.warning(t("Accuracy drops sharply when the models must predict later years. "
+                 "The random split overstates forecasting ability: the models estimate levels "
+                 "well but forecast changes weakly."))
 elif page == "Hypothesis tests":
-    st.title("Tests of the research hypotheses (5% significance level)")
-    st.dataframe(run_hypothesis_tests().round(4), width="stretch")
-    st.caption("Pooled model: OLS on all 120 observations. The country-effects model adds a "
-               "dummy variable for each country. P-values are probably optimistic because "
-               "errors are correlated within each of the five countries.")
+    st.title(t("Tests of the research hypotheses (5% significance level)"))
+    table = run_hypothesis_tests().copy()
+    for column in ["Null hypothesis", "Pooled decision", "Country-effects decision"]:
+        table[column] = table[column].map(t)
+    table = table.rename(columns={column: t(column) for column in table.columns})
+    st.dataframe(table.round(4), width="stretch")
+    st.caption(t("Pooled model: OLS on all 120 observations. The country-effects model adds a "
+                 "dummy variable for each country. P-values are probably optimistic because "
+                 "errors are correlated within each of the five countries."))
 elif page == "Prediction simulator":
-    st.title("Prediction simulator")
-    st.write("Choose a starting point, adjust the six indicators, and see what each model "
-             "estimates for the prevalence of undernourishment.")
+    st.title(t("Prediction simulator"))
+    st.write(t("Choose a starting point, adjust the six indicators, and see what each model "
+               "estimates for the prevalence of undernourishment."))
 
     _, _, _, trained_models = train_random_split_models()
 
-    start = st.selectbox("Starting point",
-                         ["Sample average"] + [f"{c} (values for 2023)" for c in COUNTRIES])
+    options = ["Sample average"] + [f"{c} (values for 2023)" for c in COUNTRIES]
+
+    def show_option(option):
+        if option == "Sample average":
+            return t(option)
+        return f"{option.split(' ')[0]} ({t('values for 2023')})"
+
+    start = st.selectbox(t("Starting point"), options, format_func=show_option)
     if start == "Sample average":
         defaults = df[PREDICTORS].mean()
         context = None
@@ -238,7 +270,7 @@ elif page == "Prediction simulator":
         defaults = row[PREDICTORS]
         context = (country, float(row[TARGET]))
 
-    st.subheader("Indicators")
+    st.subheader(t("Indicators"))
     inputs = {}
     columns = st.columns(2)
     for i, variable in enumerate(PREDICTORS):
@@ -249,33 +281,32 @@ elif page == "Prediction simulator":
                                          key=f"{variable}_{start}")
 
     new_case = pd.DataFrame([inputs])[PREDICTORS]
-    st.subheader("Estimated undernourishment")
+    st.subheader(t("Estimated undernourishment"))
     result_columns = st.columns(3)
     for column, (name, model) in zip(result_columns, trained_models.items()):
-        column.metric(name, f"{float(model.predict(new_case)[0]):.1f}%")
+        column.metric(t(name), f"{float(model.predict(new_case)[0]):.1f}%")
 
     if context:
-        st.caption(f"Observed value for {context[0]} in 2023: {context[1]:.1f}%.")
+        st.caption(t("Observed value for {country} in 2023: {value:.1f}%.").format(
+            country=context[0], value=context[1]))
 
-    st.warning("Illustrative tool only. The sliders are limited to the range of the study data. "
-               "The models estimate levels reasonably well (Random Forest R² = 0.77 on a random "
-               "split) but forecast year-to-year changes weakly (R² = 0.14 on 2018-2023). "
-               "They suit screening and monitoring, not precise early warning, and they do not "
-               "show causal effects.")
+    st.warning(t("Illustrative tool only. The sliders are limited to the range of the study data. "
+                 "The models estimate levels reasonably well (Random Forest R² = 0.77 on a random "
+                 "split) but forecast year-to-year changes weakly (R² = 0.14 on 2018-2023). "
+                 "They suit screening and monitoring, not precise early warning, and they do not "
+                 "show causal effects."))
 elif page == "About and limitations":
-    st.title("About and limitations")
-    st.markdown("""
-**Study.** Final-year research project, BSc Statistics and Data Science, Strathmore University
-(Bonane Mugwarhiriza Antoine, 169463). Title: *Predicting Food Insecurity in East Africa Using
-Climate and Economic Indicators (2000–2023)*.
-
-**Data.** World Bank (undernourishment compiled by the FAO, GDP per capita, inflation, poverty rate,
-agricultural value added) and Our World in Data (rainfall and temperature from Copernicus ERA5).
-
-**Limitations**
-- The poverty rate was missing for 82.5% of observations and was linearly interpolated.
-  Rwanda has only one real value (2023).
-- Undernourishment is published with about a two-year lag, which limits the period to 2000–2023.
-- Only five countries and 120 observations; p-values are probably optimistic.
-- The models suit screening and monitoring, not precise early warning.
-""")
+    st.title(t("About and limitations"))
+    st.markdown(t("**Study.** Final-year research project, BSc Statistics and Data Science, "
+                  "Strathmore University (Bonane Mugwarhiriza Antoine, 169463). Title: *Predicting Food "
+                  "Insecurity in East Africa Using Climate and Economic Indicators (2000–2023)*."))
+    st.markdown(t("**Data.** World Bank (undernourishment compiled by the FAO, GDP per capita, inflation, "
+                  "poverty rate, agricultural value added) and Our World in Data (rainfall and temperature "
+                  "from Copernicus ERA5)."))
+    st.markdown(t("**Limitations**"))
+    st.markdown("- " + t("The poverty rate was missing for 82.5% of observations and was linearly interpolated. "
+                         "Rwanda has only one real value (2023)."))
+    st.markdown("- " + t("Undernourishment is published with about a two-year lag, which limits the period to "
+                         "2000–2023."))
+    st.markdown("- " + t("Only five countries and 120 observations; p-values are probably optimistic."))
+    st.markdown("- " + t("The models suit screening and monitoring, not precise early warning."))
