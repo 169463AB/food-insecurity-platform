@@ -23,6 +23,10 @@ def t(text):
     """Return the Kiswahili version of a text when Kiswahili is selected."""
     return SWAHILI.get(text, text) if language == "Kiswahili" else text
 
+def csv_bytes(table):
+    """Convert a table to CSV bytes that open correctly in Excel."""
+    return table.to_csv(index=False).encode("utf-8-sig")
+
 # Visual identity: one fixed colour per country in every chart
 COUNTRY_COLORS = {"Ethiopia": "#1F4E79", "Kenya": "#C0392B", "Rwanda": "#E69F00",
                   "Tanzania": "#2E8B57", "Uganda": "#7B4FA3"}
@@ -192,6 +196,8 @@ if page == "Overview":
         st.plotly_chart(bar, width="stretch")
         st.info(t("Undernourishment fell strongly in Ethiopia, Rwanda and Tanzania but not in "
               "Uganda or Kenya, although income rose in all five countries."))
+        st.download_button(t("Download full dataset (CSV)"), csv_bytes(df),
+                       file_name="east_africa_panel_2000_2023.csv", mime="text/csv")
 
 elif page == "Country explorer":
     st.title(t("Country explorer"))
@@ -207,6 +213,8 @@ elif page == "Country explorer":
                 .mean().round(2).rename(columns=LABELS))
     averages.index.name = t("Country")
     st.dataframe(averages, width="stretch")
+    st.download_button(t("Download selected data (CSV)"), csv_bytes(subset),
+                       file_name="selected_data.csv", mime="text/csv")
     if "Rwanda" in selected and variable == "Poverty_rate_interpolated":
         st.warning(t("Rwanda has only one real poverty observation (2023); "
                      "its series is constant by construction."))
@@ -235,6 +243,8 @@ elif page == "Model comparison":
     st.dataframe(results.rename(columns={"Model": t("Model"),
                                          "R² (training)": t("R² (training)")}).round(3),
                  width="stretch")
+    st.download_button(t("Download results (CSV)"), csv_bytes(results.round(3)),
+                       file_name="model_comparison.csv", mime="text/csv")
 
     model_name = st.selectbox(t("Observed against predicted"),
                               [c for c in observed_vs_predicted.columns if c != "Observed"],
@@ -261,6 +271,8 @@ elif page == "Forward-looking test":
     table = train_temporal_models().copy()
     table["Model"] = table["Model"].map(t)
     st.dataframe(table.rename(columns={"Model": t("Model")}).round(3), width="stretch")
+    st.download_button(t("Download results (CSV)"), csv_bytes(table.round(3)),
+                       file_name="forward_looking_test.csv", mime="text/csv")
     st.warning(t("Accuracy drops sharply when the models must predict later years. "
                  "The random split overstates forecasting ability: the models estimate levels "
                  "well but forecast changes weakly."))
@@ -271,6 +283,8 @@ elif page == "Hypothesis tests":
         table[column] = table[column].map(t)
     table = table.rename(columns={column: t(column) for column in table.columns})
     st.dataframe(table.round(4), width="stretch")
+    st.download_button(t("Download results (CSV)"), csv_bytes(table.round(4)),
+                       file_name="hypothesis_tests.csv", mime="text/csv")
     st.caption(t("Pooled model: OLS on all 120 observations. The country-effects model adds a "
                  "dummy variable for each country. P-values are probably optimistic because "
                  "errors are correlated within each of the five countries."))

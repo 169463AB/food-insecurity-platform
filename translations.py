@@ -172,4 +172,9 @@ SWAHILI = {
         "iliyo sahihi.",
         
     "Percentage points": "Pointi za asilimia",
+    
+    # Download buttons
+    "Download selected data (CSV)": "Pakua data zilizochaguliwa (CSV)",
+    "Download full dataset (CSV)": "Pakua data zote (CSV)",
+    "Download results (CSV)": "Pakua matokeo (CSV)",
 }
