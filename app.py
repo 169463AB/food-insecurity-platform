@@ -12,6 +12,10 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.base import clone
 import statsmodels.formula.api as smf
 from translations import SWAHILI
+import json
+from pathlib import Path
+
+import joblib
 
 # Page configuration (must be the first Streamlit command)
 st.set_page_config(page_title="East Africa Food Insecurity", page_icon="🌍", layout="wide")
@@ -67,6 +71,16 @@ COUNTRIES = ["Ethiopia", "Kenya", "Rwanda", "Tanzania", "Uganda"]
 
 
 @st.cache_data
+@st.cache_resource
+def load_final_model():
+    """Load the saved final Random Forest and its description (None if missing)."""
+    model_path = Path("model/final_random_forest.joblib")
+    info_path = Path("model/model_info.json")
+    if not (model_path.exists() and info_path.exists()):
+        return None, None
+    with open(info_path, encoding="utf-8") as f:
+        info = json.load(f)
+    return joblib.load(model_path), info
 def load_data():
     """Read the cleaned panel dataset once and keep it in memory."""
     return pd.read_csv("data/final_panel_dataset.csv")
@@ -323,10 +337,24 @@ elif page == "Prediction simulator":
                                          key=f"{variable}_{start}")
 
     new_case = pd.DataFrame([inputs])[PREDICTORS]
+    final_model, info = load_final_model()
     st.subheader(t("Estimated undernourishment"))
-    result_columns = st.columns(3)
-    for column, (name, model) in zip(result_columns, trained_models.items()):
-        column.metric(t(name), f"{float(model.predict(new_case)[0]):.1f}%")
+    estimates = {name: float(model.predict(new_case)[0])
+                 for name, model in trained_models.items()}
+    if final_model is not None:
+        estimates["Final model (Random Forest)"] = float(final_model.predict(new_case)[0])
+        for row_start in range(0, len(estimates), 2):
+        row_columns = st.columns(2)
+        for column, (name, value) in zip(row_columns, list(estimates.items())[row_start:row_start + 2]):
+            column.metric(t(name), f"{value:.1f}%")
+
+    if info:
+        with st.expander(t("About the final model")):
+            st.write(t("Random Forest trained on all {n} observations (hyperparameters chosen "
+                       "by cross-validation). Performance estimated before the final refit: "
+                       "R² = {r2:.3f} on a random split, R² = {tr2:.3f} on 2018–2023.").format(
+                n=info["n_observations"], r2=info["test_metrics_random_split"]["R2"],
+                tr2=info["temporal_test_r2"]))
 
     if context:
         st.caption(t("Observed value for {country} in 2023: {value:.1f}%.").format(

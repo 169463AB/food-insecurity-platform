@@ -177,4 +177,14 @@ SWAHILI = {
     "Download selected data (CSV)": "Pakua data zilizochaguliwa (CSV)",
     "Download full dataset (CSV)": "Pakua data zote (CSV)",
     "Download results (CSV)": "Pakua matokeo (CSV)",
+    
+    # Final model
+    "Final model (Random Forest)": "Mfano wa mwisho (Msitu wa nasibu)",
+    "About the final model": "Kuhusu mfano wa mwisho",
+    "Random Forest trained on all {n} observations (hyperparameters chosen "
+    "by cross-validation). Performance estimated before the final refit: "
+    "R² = {r2:.3f} on a random split, R² = {tr2:.3f} on 2018–2023.":
+        "Msitu wa nasibu uliofunzwa kwa uchunguzi wote {n} (vigezo vilichaguliwa kwa "
+        "uthibitishaji mtambuka). Utendaji uliokadiriwa kabla ya mafunzo ya mwisho: "
+        "R² = {r2:.3f} kwenye mgawanyo wa nasibu, R² = {tr2:.3f} kwa 2018–2023.",
 }

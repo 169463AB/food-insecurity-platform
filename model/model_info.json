@@ -1,0 +1,51 @@
+{
+  "trained_on": "2026-11-03",
+  "scikit_learn_version": "1.9.1",
+  "n_observations": 120,
+  "predictors": [
+    "Rainfall_mm",
+    "Temperature_C",
+    "GDP_per_capita_USD",
+    "Inflation_pct",
+    "Poverty_rate_interpolated",
+    "Agri_value_added_pctGDP"
+  ],
+  "hyperparameters": {
+    "max_depth": null,
+    "max_features": 1.0,
+    "min_samples_leaf": 1,
+    "n_estimators": 500
+  },
+  "test_metrics_random_split": {
+    "RMSE": 3.7042998000072154,
+    "MAE": 2.8501750000000077,
+    "R2": 0.7715406289341599
+  },
+  "temporal_test_r2": 0.143,
+  "predictor_ranges": {
+    "Rainfall_mm": [
+      434.32883,
+      1825.5701
+    ],
+    "Temperature_C": [
+      18.802792166666666,
+      25.87288225
+    ],
+    "GDP_per_capita_USD": [
+      109.593813612988,
+      2109.56288513137
+    ],
+    "Inflation_pct": [
+      -8.23784453391137,
+      44.3566858766952
+    ],
+    "Poverty_rate_interpolated": [
+      16.1,
+      46.8
+    ],
+    "Agri_value_added_pctGDP": [
+      16.2549814662286,
+      45.8826942649105
+    ]
+  }
+}
