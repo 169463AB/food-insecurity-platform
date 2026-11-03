@@ -2,6 +2,6 @@ streamlit>=1.35
 pandas
 numpy
 plotly
-scikit-learn==X.Y.Z
+scikit-learn==1.9.1
 statsmodels
 joblib
