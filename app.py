@@ -343,9 +343,10 @@ elif page == "Prediction simulator":
                  for name, model in trained_models.items()}
     if final_model is not None:
         estimates["Final model (Random Forest)"] = float(final_model.predict(new_case)[0])
-        for row_start in range(0, len(estimates), 2):
+    items = list(estimates.items())
+    for row_start in range(0, len(items), 2):
         row_columns = st.columns(2)
-        for column, (name, value) in zip(row_columns, list(estimates.items())[row_start:row_start + 2]):
+        for column, (name, value) in zip(row_columns, items[row_start:row_start + 2]):
             column.metric(t(name), f"{value:.1f}%")
 
     if info:
